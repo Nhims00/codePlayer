@@ -1,0 +1,150 @@
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+
+public class PlayerMovement : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float jumSpeed = 10f;
+    [SerializeField] private float climbSpeed = 10f;
+    [SerializeField]  GameObject bullet;
+    [SerializeField] Transform Gun;
+    private bool isClimbing = false;
+    private Rigidbody2D rb;
+    private Animator anim;
+    private Vector2 moveInput;
+    bool KiemTra = false;
+    CapsuleCollider2D mycapsuleCollider;
+    public TMP_Text Coin;
+    private int countScore = 0;
+    // Start is called before the first frame update
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
+        mycapsuleCollider = GetComponent<CapsuleCollider2D>();
+    }
+
+    public void OnMove(InputValue input)
+    {
+        moveInput = input.Get<Vector2>();
+        Debug.Log(moveInput);
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        Run();
+        Flip();
+        
+
+        if (isClimbing && Input.GetKey(KeyCode.UpArrow))
+        {
+            float climbInput = Input.GetAxisRaw("Vertical");
+            rb.velocity = new Vector2(rb.velocity.x, climbInput * climbSpeed * Time.deltaTime);
+
+            bool checkClimb = Mathf.Abs(rb.velocity.y) > Mathf.Epsilon; // true/false
+            anim.SetBool("IsLeo", true);
+
+        }
+    }
+
+
+    void Run()
+    {
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        rb.velocity = new Vector2(horizontal * moveSpeed, rb.velocity.y);
+
+        // Vector2 player = new Vector2(moveInput.x * moveSpeed, rb.velocity.y);
+        // rb.velocity = player;
+
+        bool checkRun = Mathf.Abs(rb.velocity.x) > Mathf.Epsilon; // true/false
+        Debug.Log(Mathf.Abs(rb.velocity.x));
+        if (checkRun)
+        {
+            anim.SetBool("IsRunning", true);
+        }
+        else
+        {
+            anim.SetBool("IsRunning", false);
+        }
+
+    }
+
+    void Flip()
+    {
+        bool flip = Mathf.Abs(rb.velocity.x) > Mathf.Epsilon;
+        if (flip)
+        {
+            transform.localScale = new Vector2(Mathf.Sign(rb.velocity.x), 1f);
+        }
+    }
+
+    void OnJump(InputValue value)
+    {
+
+        if (value.isPressed)
+        {
+            rb.velocity += new Vector2(0f, jumSpeed);
+            bool checkJump = Mathf.Abs(rb.velocity.x) > Mathf.Epsilon; // true/false
+            Debug.Log(Mathf.Abs(rb.velocity.x));
+            
+                anim.SetBool("IsJumping", true);
+
+        }
+    }
+    void OnFire(InputValue value)
+    {
+       
+        if (Input.GetKey(KeyCode.F))
+        {
+            Instantiate(bullet, Gun.position, transform.rotation);
+        
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D other)
+    {
+        if (other.gameObject.CompareTag("Ground"))
+        {
+            KiemTra = true;
+            anim.SetBool("IsJumping", false);
+            anim.SetBool("IsLeo", false);
+        }
+    }
+
+    private void OnCollisionExit2D(Collision2D other)
+    {
+        if (other.gameObject.CompareTag("Ground"))
+        {
+           KiemTra = false;
+        }
+        if (other.gameObject.CompareTag("Coin"))
+        {
+            countScore++;
+            Coin.text = "Coin: " + countScore;
+
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.CompareTag("Thang"))
+        {
+            isClimbing = true;
+            rb.gravityScale = 0f;
+        }
+        
+    }
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.gameObject.CompareTag("Thang"))
+        {
+            isClimbing = false;
+            rb.gravityScale = 1f;
+        }
+    }
+}
